@@ -2,27 +2,18 @@
 
 static zmq::context_t context;
 
+Client::Client() { IP = "tcp://127.0.0.1:/5555"; }
 
-Client::Client()
-{
-    IP = "tcp://127.0.0.1:/5555";
-}
+Client::Client(std::string IP) { this->IP = IP; }
 
-Client::Client(std::string IP)
-{
-    this -> IP = IP;
-}
-
-void Client::connect()
-{
+void Client::connect() {
     std::cout << "Client connecting...\n";
     socket = zmq::socket_t(context, zmq::socket_type::dealer);
     socket.connect(IP);
     register_socket();
 }
 
-void Client::register_socket()
-{
+void Client::register_socket() {
     std::string message = "REG";
     zmq::message_t registration(message);
     socket.send(registration);
@@ -31,59 +22,48 @@ void Client::register_socket()
     user.set_id(id);
 }
 
-void Client::read()
-{
-    while(1)
-    {
+void Client::read() {
+    while (1) {
         zmq::message_t response;
         socket.recv(response);
         std::cout << response.to_string() << "\n";
 
         std::string answer = response.to_string();
 
-        if (answer == "Login successful")
-        {
+        if (answer == "Login successful") {
             user.set_status(true);
             logged_in = true;
         }
 
-        if (answer == "Login error")
-        {
+        if (answer == "Login error") {
             user.set_username("");
             logged_in = false;
         }
 
-        if (answer == "Logout successful")
-        {
+        if (answer == "Logout successful") {
             user.set_status(false);
             logged_in = false;
         }
-
     }
 }
 
-void Client::event_processing()
-{
+void Client::event_processing() {
     std::thread recv(&Client::read, this);
 
-    while(1)
-    {
+    while (1) {
         std::string command;
 
-        if (logged_in)
-        {
+        if (logged_in) {
             std::cout << user.get_username() << ": ";
         }
 
-        else
-        {
+        else {
             std::cout << "Please, log in: ";
         }
 
         std::cin >> command;
 
-        if (command == "LOGIN")
-        {
+        if (command == "LOGIN") {
             if (logged_in) {
                 std::cout << "You already log in" << std::endl;
             } else {
@@ -96,10 +76,8 @@ void Client::event_processing()
 
         }
 
-        else if (command == "SEND")
-        {
-            if (logged_in)
-            {
+        else if (command == "SEND") {
+            if (logged_in) {
                 std::string username, message;
                 std::cin >> username;
                 getline(std::cin, message);
@@ -107,59 +85,45 @@ void Client::event_processing()
                 send(command);
             }
 
-            else
-            {
+            else {
                 std::cout << "You must log in first!\n";
             }
 
         }
 
-        else if (command == "HISTORY")
-        {
-            if (logged_in)
-            {
+        else if (command == "HISTORY") {
+            if (logged_in) {
                 std::string message;
                 getline(std::cin, message);
                 command = command + " " + message;
                 send(command);
             }
 
-            else
-            {
+            else {
                 std::cout << "You must log in first!\n";
             }
 
         }
 
-        else if (command == "LOGOUT")
-        {
-            if (logged_in)
-            {
+        else if (command == "LOGOUT") {
+            if (logged_in) {
                 send(command);
             }
 
-            else
-            {
+            else {
                 std::cout << "You must log in first\n";
             }
         }
 
-        else
-        {
+        else {
             std::cout << "Wrong input\n";
         }
     }
 }
 
-void Client::disconnect()
-{
-    socket.disconnect(IP);
-}
+void Client::disconnect() { socket.disconnect(IP); }
 
-void Client::send(std::string text)
-{
+void Client::send(std::string text) {
     zmq::message_t message(text);
     socket.send(message);
 }
-
-
